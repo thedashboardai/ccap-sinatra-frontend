@@ -8,6 +8,9 @@ import {
   IconButton,
   Link,
   Paper,
+  Slide,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Visibility,
@@ -16,16 +19,75 @@ import {
   Email,
   Lock
 } from '@mui/icons-material';
+import ProfileSetupPage from './ProfileSetupPage';
+import ProfileSetupPage2 from './ProfileSetupPage2';
+import ProfileSetupPage3 from './ProfileSetupPage3';
+import ProfileSetupPage4 from './ProfileSetupPage4';
+import ProfileSuccessDialog from './ProfileSuccessDialog';
+import ProfileView from './ProfileView';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [currentPage, setCurrentPage] = useState('login'); // 'login', 'profile1', 'profile2', 'profile3', 'profile4', 'profileView'
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Login attempt with:', { email, password });
-    // Add your authentication logic here
+    // In a real app, you would validate credentials here
+    // For now, just navigate to profile setup
+    setCurrentPage('profile1');
+  };
+
+  const handleNavigateToProfile2 = () => {
+    setCurrentPage('profile2');
+  };
+
+  const handleNavigateToProfile3 = () => {
+    setCurrentPage('profile3');
+  };
+
+  const handleNavigateToProfile4 = () => {
+    setCurrentPage('profile4');
+  };
+
+  const handleNavigateToProfileView = () => {
+    setCurrentPage('profileView');
+  };
+
+  const handleProfileSubmit = () => {
+    console.log('Profile submitted!');
+    // Show success dialog instead of snackbar
+    setSuccessDialogOpen(true);
+  };
+
+  const handleCloseSuccessDialog = () => {
+    setSuccessDialogOpen(false);
+    // Navigate to profile view after closing the dialog
+    handleNavigateToProfileView();
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
+
+  const handleBackToProfile3 = () => {
+    setCurrentPage('profile3');
+  };
+
+  const handleBackToProfile2 = () => {
+    setCurrentPage('profile2');
+  };
+
+  const handleBackToProfile1 = () => {
+    setCurrentPage('profile1');
+  };
+
+  const handleBackToLogin = () => {
+    setCurrentPage('login');
   };
 
   const handleTogglePasswordVisibility = () => {
@@ -62,20 +124,25 @@ const LoginPage = () => {
           flexDirection: 'column',
           boxShadow: {
             xs: 'none',
-            sm: '0 4px 20px rgba(0,0,0,0.15)'
-          }
+            sm: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 1px rgba(0,0,0,0.1)'
+          },
+          position: 'relative'
         }}
       >
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          sx={{
-            p: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            height: '100%'
-          }}
-        >
+        {/* Login Form */}
+        <Slide direction="right" in={currentPage === 'login'} mountOnEnter unmountOnExit>
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            sx={{
+              p: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              width: '100%',
+              position: 'absolute'
+            }}
+          >
           {/* Header with back button */}
           <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
             <IconButton
@@ -107,8 +174,8 @@ const LoginPage = () => {
             alignItems: 'flex-start'
           }}>
             <Box sx={{ 
-              width: '120px', 
-              height: '120px',
+              width: '80px', 
+              height: '80px',
               flexShrink: 0
             }}>
               <img
@@ -314,7 +381,85 @@ const LoginPage = () => {
             </Typography>
           </Box>
         </Box>
+        </Slide>
+
+        {/* Profile Setup Page 1 */}
+        <Slide direction={currentPage === 'login' ? 'left' : 'right'} in={currentPage === 'profile1'} mountOnEnter unmountOnExit>
+          <Box sx={{ 
+            height: '100%', 
+            width: '100%',
+            position: 'absolute'
+          }}>
+            <ProfileSetupPage onBack={handleBackToLogin} onNext={handleNavigateToProfile2} />
+          </Box>
+        </Slide>
+
+        {/* Profile Setup Page 2 */}
+        <Slide direction={currentPage === 'profile1' ? 'left' : 'right'} in={currentPage === 'profile2'} mountOnEnter unmountOnExit>
+          <Box sx={{ 
+            height: '100%', 
+            width: '100%',
+            position: 'absolute'
+          }}>
+            <ProfileSetupPage2 onBack={handleBackToProfile1} onNext={handleNavigateToProfile3} />
+          </Box>
+        </Slide>
+
+        {/* Profile Setup Page 3 */}
+        <Slide direction={currentPage === 'profile2' ? 'left' : 'right'} in={currentPage === 'profile3'} mountOnEnter unmountOnExit>
+          <Box sx={{ 
+            height: '100%', 
+            width: '100%',
+            position: 'absolute'
+          }}>
+            <ProfileSetupPage3 onBack={handleBackToProfile2} onNext={handleNavigateToProfile4} />
+          </Box>
+        </Slide>
+
+        {/* Profile Setup Page 4 (Final) */}
+        <Slide direction="left" in={currentPage === 'profile4'} mountOnEnter unmountOnExit>
+          <Box sx={{ 
+            height: '100%', 
+            width: '100%',
+            position: 'absolute'
+          }}>
+            <ProfileSetupPage4 onBack={handleBackToProfile3} onSubmit={handleProfileSubmit} />
+          </Box>
+        </Slide>
+
+        {/* Profile View */}
+        <Slide direction="left" in={currentPage === 'profileView'} mountOnEnter unmountOnExit>
+          <Box sx={{ 
+            height: '100%', 
+            width: '100%',
+            position: 'absolute'
+          }}>
+            <ProfileView />
+          </Box>
+        </Slide>
       </Paper>
+
+      {/* Success Dialog */}
+      <ProfileSuccessDialog 
+        open={successDialogOpen} 
+        onClose={handleCloseSuccessDialog}
+      />
+
+      {/* Success Snackbar (keeping as backup) */}
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={4000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity="success" 
+          sx={{ width: '100%' }}
+        >
+          Profile submitted successfully!
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

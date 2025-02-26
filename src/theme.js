@@ -67,6 +67,17 @@ const theme = createTheme({
         },
       },
     },
+    MuiLinearProgress: {
+      styleOverrides: {
+        root: {
+          height: 8,
+          borderRadius: 4,
+        },
+        bar: {
+          borderRadius: 4,
+        }
+      }
+    },
     MuiButton: {
       styleOverrides: {
         root: {
