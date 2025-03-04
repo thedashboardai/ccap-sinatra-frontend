@@ -1,3 +1,4 @@
+// src/components/AddDishModal.jsx
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -10,19 +11,34 @@ import {
   IconButton,
   Avatar,
   InputAdornment,
-  Select,
   MenuItem,
   FormControl,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { Close, KeyboardArrowDown, AddAPhoto } from '@mui/icons-material';
+
+// The 32 dishes we want to make available for selection
+const DISH_OPTIONS = [
+  'Sushi Platter', 'Quinoa Salad', 'Grilled Salmon', 'Vegetable Bowl',
+  'Maki Selection', 'Green Bowl', 'Spicy Tuna Roll', 'Fresh Salad',
+  'Salmon Rolls', 'Pistachio Cake', 'Chocolate Mousse', 'Fruit Tart',
+  'Ramen Bowl', 'Poke Bowl', 'Pad Thai', 'Chicken Curry',
+  'Beef Stir Fry', 'Vegetable Stir Fry', 'Shrimp Scampi', 'Pasta Primavera',
+  'Margherita Pizza', 'Caesar Salad', 'Greek Salad', 'Caprese Salad',
+  'Avocado Toast', 'Eggs Benedict', 'Pancakes', 'French Toast',
+  'Chicken Sandwich', 'Club Sandwich', 'Tuna Melt', 'BLT Sandwich'
+];
 
 const AddDishModal = ({ open, onClose, onAdd }) => {
   const [dishData, setDishData] = useState({
     name: '',
-    description: 'Lorem ipsum dolor sit amet consectetur. Consectetur elit leo lorem ac lobortis tellus sollicitudin.',
+    description: 'A delicious dish made with fresh ingredients and expert preparation.',
     image: null,
     imagePreview: null,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleChange = (field) => (event) => {
     setDishData({
@@ -34,6 +50,20 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
   const handleImageChange = (event) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
+      
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setError('Invalid file type. Please upload a JPEG or PNG image.');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File is too large. Maximum size is 5MB.');
+        return;
+      }
+      
       const imageUrl = URL.createObjectURL(file);
       
       setDishData({
@@ -41,31 +71,55 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
         image: file,
         imagePreview: imageUrl,
       });
+      
+      setError(null);
     }
   };
 
   const handleSubmit = () => {
-    // In a real app, you would upload the image to a server
-    // For now, we'll just use the preview URL
+    if (!dishData.name) {
+      setError('Please select a dish name.');
+      return;
+    }
+    
+    setLoading(true);
+    
+    // For now, let's just pass the data directly to the parent component
+    // This simplification helps avoid S3 permission issues during development
     onAdd({
       name: dishData.name,
       description: dishData.description,
-      image: dishData.imagePreview || '/images/dishes/placeholder.jpg',
+      // Pass the image file, but we'll use a local placeholder in the parent component
+      image: dishData.image
     });
-    
-    // Reset form
+  };
+
+  const handleClose = () => {
+    // Reset form state when closing the modal
     setDishData({
       name: '',
-      description: 'Lorem ipsum dolor sit amet consectetur. Consectetur elit leo lorem ac lobortis tellus sollicitudin.',
+      description: 'A delicious dish made with fresh ingredients and expert preparation.',
       image: null,
       imagePreview: null,
     });
+    setError(null);
+    setLoading(false);
+    onClose();
+  };
+
+  // Get user name from localStorage
+  const getUserName = () => {
+    if (localStorage.getItem('user')) {
+      const user = JSON.parse(localStorage.getItem('user'));
+      return `${user.first_name || ''}`.trim() || 'User';
+    }
+    return 'User';
   };
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="sm"
       fullWidth
       PaperProps={{
@@ -81,7 +135,7 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
           <Typography variant="h6" fontWeight="bold">
             Add Dish Photo
           </Typography>
-          <IconButton onClick={onClose} edge="end">
+          <IconButton onClick={handleClose} edge="end">
             <Close />
           </IconButton>
         </Box>
@@ -92,20 +146,27 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar
             src="/images/profile-placeholder.jpg"
-            alt="John Doe"
+            alt={getUserName()}
             sx={{ width: 32, height: 32, mr: 1.5 }}
           />
           <Typography variant="body1" fontWeight="medium">
-            John Doe
+            {getUserName()}
           </Typography>
         </Box>
 
+        {/* Error Message */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         {/* Description */}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {dishData.description}
+          Add a photo of one of your best dishes to showcase your culinary skills.
         </Typography>
 
-        {/* Image Upload */}
+        {/* Image Upload - This is just for UI display, we're not actually uploading */}
         <Box
           sx={{
             width: '100%',
@@ -151,6 +212,7 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
                     imagePreview: null,
                   });
                 }}
+                disabled={loading}
               >
                 <Close fontSize="small" />
               </IconButton>
@@ -160,6 +222,7 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
               component="label"
               startIcon={<AddAPhoto />}
               sx={{ color: '#78909c' }}
+              disabled={loading}
             >
               Add Photos
               <input
@@ -167,6 +230,7 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
                 hidden
                 accept="image/*"
                 onChange={handleImageChange}
+                disabled={loading}
               />
             </Button>
           )}
@@ -179,6 +243,7 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
             label="Dish Name"
             value={dishData.name}
             onChange={handleChange('name')}
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -192,19 +257,38 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
               },
             }}
           >
-            <MenuItem value="Sushi Platter">Sushi Platter</MenuItem>
-            <MenuItem value="Quinoa Salad">Quinoa Salad</MenuItem>
-            <MenuItem value="Grilled Salmon">Grilled Salmon</MenuItem>
-            <MenuItem value="Vegetable Bowl">Vegetable Bowl</MenuItem>
+            {DISH_OPTIONS.map((dish) => (
+              <MenuItem key={dish} value={dish}>
+                {dish}
+              </MenuItem>
+            ))}
           </TextField>
         </FormControl>
+
+        {/* Description Field */}
+        <TextField
+          fullWidth
+          label="Description"
+          multiline
+          rows={3}
+          value={dishData.description}
+          onChange={handleChange('description')}
+          disabled={loading}
+          variant="outlined"
+          sx={{
+            mb: 3,
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+            },
+          }}
+        />
 
         {/* Add Button */}
         <Button
           fullWidth
           variant="contained"
           onClick={handleSubmit}
-          disabled={!dishData.name || !dishData.imagePreview}
+          disabled={loading || !dishData.name}
           sx={{
             bgcolor: '#42a5f5',
             color: 'white',
@@ -220,7 +304,7 @@ const AddDishModal = ({ open, onClose, onAdd }) => {
             },
           }}
         >
-          Add
+          {loading ? <CircularProgress size={24} /> : 'Add Dish'}
         </Button>
       </DialogContent>
     </Dialog>
