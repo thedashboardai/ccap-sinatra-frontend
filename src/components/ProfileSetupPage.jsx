@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -7,7 +7,8 @@ import {
   IconButton,
   LinearProgress,
   InputAdornment,
-  Paper,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   ArrowBack,
@@ -16,36 +17,100 @@ import {
   Phone,
   KeyboardArrowDown
 } from '@mui/icons-material';
+import { useProfile } from '../services/ProfileContext';
 
 const ProfileSetupPage = ({ onBack, onNext }) => {
-  const [profileData, setProfileData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    preferredName: 'Doe',
-    mailingAddress: 'Florida, USA',
+  const { 
+    profileData, 
+    updateProfileData, 
+    fetchProfile, 
+    loading, 
+    error, 
+    isProfileFetched 
+  } = useProfile();
+  
+  const [pageData, setPageData] = useState({
+    firstName: '',
+    lastName: '',
+    preferredName: '',
+    mailingAddress: '',
     willingToRelocate: null,
-    dateOfBirth: '09/18/96',
-    phoneNumber: '+1 954 444 4444'
+    dateOfBirth: '',
+    phoneNumber: ''
   });
 
+  // Fetch profile data when component mounts
+  useEffect(() => {
+    if (!isProfileFetched) {
+      fetchProfile();
+    }
+  }, [fetchProfile, isProfileFetched]);
+
+  // Update local state when profileData changes
+  useEffect(() => {
+    if (profileData) {
+      setPageData({
+        firstName: profileData.first_name || '',
+        lastName: profileData.last_name || '',
+        preferredName: profileData.preferred_name || '',
+        mailingAddress: profileData.mailing_address || '',
+        willingToRelocate: profileData.willing_to_relocate,
+        dateOfBirth: profileData.date_of_birth || '',
+        phoneNumber: profileData.phone_number || ''
+      });
+    }
+  }, [profileData]);
+
   const handleChange = (field) => (event) => {
-    setProfileData({
-      ...profileData,
+    setPageData({
+      ...pageData,
       [field]: event.target.value
     });
   };
 
   const handleRelocateChoice = (choice) => {
-    setProfileData({
-      ...profileData,
+    setPageData({
+      ...pageData,
       willingToRelocate: choice
     });
   };
 
   const handleNext = () => {
-    console.log('Profile data:', profileData);
+    // Update the global profile data with this page's data
+    updateProfileData({
+      first_name: pageData.firstName,
+      last_name: pageData.lastName,
+      preferred_name: pageData.preferredName,
+      mailing_address: pageData.mailingAddress,
+      willing_to_relocate: pageData.willingToRelocate,
+      date_of_birth: pageData.dateOfBirth,
+      phone_number: pageData.phoneNumber
+    });
+    
     onNext(); // Navigate to the next page
   };
+
+  if (loading && !isProfileFetched) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+        <Typography sx={{ mt: 2 }}>Loading your profile...</Typography>
+      </Box>
+    );
+  }
+
+  if (error && !isProfileFetched) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={fetchProfile}>
+          Try Again
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -151,7 +216,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.firstName}
+            value={pageData.firstName}
             onChange={handleChange('firstName')}
             variant="outlined"
             sx={{
@@ -170,7 +235,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.lastName}
+            value={pageData.lastName}
             onChange={handleChange('lastName')}
             variant="outlined"
             sx={{
@@ -189,7 +254,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.preferredName}
+            value={pageData.preferredName}
             onChange={handleChange('preferredName')}
             variant="outlined"
             sx={{
@@ -208,7 +273,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.mailingAddress}
+            value={pageData.mailingAddress}
             onChange={handleChange('mailingAddress')}
             variant="outlined"
             InputProps={{
@@ -235,16 +300,16 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               fullWidth
-              variant={profileData.willingToRelocate === true ? "contained" : "outlined"}
+              variant={pageData.willingToRelocate === true ? "contained" : "outlined"}
               onClick={() => handleRelocateChoice(true)}
               sx={{
                 borderRadius: 2,
                 py: 1.5,
-                color: profileData.willingToRelocate === true ? 'white' : '#42a5f5',
+                color: pageData.willingToRelocate === true ? 'white' : '#42a5f5',
                 borderColor: '#42a5f5',
                 '&:hover': {
                   borderColor: '#42a5f5',
-                  bgcolor: profileData.willingToRelocate === true ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                  bgcolor: pageData.willingToRelocate === true ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                 },
               }}
             >
@@ -252,16 +317,16 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
             </Button>
             <Button
               fullWidth
-              variant={profileData.willingToRelocate === false ? "contained" : "outlined"}
+              variant={pageData.willingToRelocate === false ? "contained" : "outlined"}
               onClick={() => handleRelocateChoice(false)}
               sx={{
                 borderRadius: 2,
                 py: 1.5,
-                color: profileData.willingToRelocate === false ? 'white' : '#42a5f5',
+                color: pageData.willingToRelocate === false ? 'white' : '#42a5f5',
                 borderColor: '#42a5f5',
                 '&:hover': {
                   borderColor: '#42a5f5',
-                  bgcolor: profileData.willingToRelocate === false ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                  bgcolor: pageData.willingToRelocate === false ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                 },
               }}
             >
@@ -277,7 +342,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.dateOfBirth}
+            value={pageData.dateOfBirth}
             onChange={handleChange('dateOfBirth')}
             variant="outlined"
             InputProps={{
@@ -308,7 +373,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.phoneNumber}
+            value={pageData.phoneNumber}
             onChange={handleChange('phoneNumber')}
             variant="outlined"
             InputProps={{
@@ -333,6 +398,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
         fullWidth
         variant="contained"
         onClick={handleNext}
+        disabled={loading}
         sx={{
           mt: 'auto',
           py: 1.5,
@@ -349,7 +415,7 @@ const ProfileSetupPage = ({ onBack, onNext }) => {
           marginTop: 3
         }}
       >
-        Next
+        {loading ? <CircularProgress size={24} color="inherit" /> : 'Next'}
       </Button>
     </Box>
   );

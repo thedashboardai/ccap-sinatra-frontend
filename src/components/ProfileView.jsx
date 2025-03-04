@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -7,21 +7,83 @@ import {
   Tab,
   Tabs,
   Paper,
+  Button,
+  Menu,
+  MenuItem,
+  Divider,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   Edit,
   Share,
   LocationOn,
-  Business
+  Business,
+  MoreVert,
+  ExitToApp
 } from '@mui/icons-material';
 import CuisinePortfolio from './CuisinePortfolio';
+import { useProfile } from '../services/ProfileContext';
 
-const ProfileView = () => {
+const ProfileView = ({ onLogout }) => {
+  const { profileData, fetchProfile, loading, error, isProfileFetched } = useProfile();
   const [tabValue, setTabValue] = useState(0);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const menuOpen = Boolean(menuAnchorEl);
+
+  // Fetch profile data if not already fetched
+  useEffect(() => {
+    if (!isProfileFetched) {
+      fetchProfile();
+    }
+  }, [fetchProfile, isProfileFetched]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+
+  const handleMenuOpen = (event) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    // Clear localStorage token
+    localStorage.removeItem('sinatraToken');
+    localStorage.removeItem('user');
+    
+    // Call the onLogout prop to navigate back to login
+    if (onLogout) {
+      onLogout();
+    }
+    
+    handleMenuClose();
+  };
+
+  if (loading && !isProfileFetched) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress />
+        <Typography sx={{ mt: 2 }}>Loading your profile...</Typography>
+      </Box>
+    );
+  }
+
+  if (error && !isProfileFetched) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={fetchProfile}>
+          Try Again
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -69,7 +131,7 @@ const ProfileView = () => {
           }}
         >
           <Avatar
-            src="/images/profile-placeholder.jpg"
+            src={profileData?.profile_picture_url || "/images/profile-placeholder.jpg"}
             alt="Profile"
             sx={{
               width: '100%',
@@ -78,7 +140,7 @@ const ProfileView = () => {
           />
         </Box>
 
-        {/* Edit and share buttons */}
+        {/* Action buttons */}
         <Box
           sx={{
             position: 'absolute',
@@ -110,6 +172,43 @@ const ProfileView = () => {
           >
             <Share sx={{ color: '#42a5f5' }} />
           </IconButton>
+          <IconButton
+            aria-label="more options"
+            onClick={handleMenuOpen}
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.7)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.9)',
+              },
+            }}
+          >
+            <MoreVert sx={{ color: '#42a5f5' }} />
+          </IconButton>
+          
+          {/* More options menu */}
+          <Menu
+            anchorEl={menuAnchorEl}
+            open={menuOpen}
+            onClose={handleMenuClose}
+            PaperProps={{
+              elevation: 2,
+              sx: {
+                overflow: 'visible',
+                filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.1))',
+                mt: 1.5,
+                borderRadius: 2,
+                '& .MuiMenuItem-root': {
+                  px: 2,
+                  py: 1,
+                },
+              },
+            }}
+          >
+            <MenuItem onClick={handleLogout}>
+              <ExitToApp sx={{ mr: 1, color: '#42a5f5' }} />
+              Logout
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
 
@@ -129,7 +228,7 @@ const ProfileView = () => {
             mb: 0.5,
           }}
         >
-          John Doe
+          {profileData ? `${profileData.first_name} ${profileData.last_name}` : 'Loading...'}
         </Typography>
 
         <Typography
@@ -139,7 +238,9 @@ const ProfileView = () => {
             mb: 2,
           }}
         >
-          Manager at restaurant name
+          {profileData && profileData.current_position ? 
+            `${profileData.current_position} at ${profileData.current_employer}` : 
+            'Profile details loading...'}
         </Typography>
 
         <Box
@@ -152,14 +253,22 @@ const ProfileView = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', color: '#78909c' }}>
             <Business sx={{ fontSize: 20, mr: 1, color: '#78909c' }} />
             <Typography variant="body2" sx={{ color: '#78909c' }}>
-              Restaurant Name <Typography component="span" sx={{ mx: 0.5, color: '#bdbdbd' }}>•</Typography> 3+ years
+              {profileData?.current_employer || 'Not specified'} 
+              {profileData?.culinary_class_years && (
+                <>
+                  <Typography component="span" sx={{ mx: 0.5, color: '#bdbdbd' }}>•</Typography>
+                  {profileData.culinary_class_years}+ years
+                </>
+              )}
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', color: '#78909c' }}>
             <LocationOn sx={{ fontSize: 20, mr: 1, color: '#78909c' }} />
             <Typography variant="body2" sx={{ color: '#78909c' }}>
-              Scottsdale, Arizona
+              {profileData?.city && profileData?.state ? 
+                `${profileData.city}, ${profileData.state}` : 
+                'Location not specified'}
             </Typography>
           </Box>
         </Box>
@@ -245,7 +354,7 @@ const ProfileView = () => {
                   lineHeight: 1.6,
                 }}
               >
-                Lorem ipsum dolor sit amet consectetur. Id mauris pretium dignissim eget. Metus duis feugiat sed odio mattis maecenas curabitur. Nibh adipiscing senectus...
+                {profileData?.bio || 'No bio information available.'}
               </Typography>
               <Typography
                 variant="body2"
@@ -259,6 +368,86 @@ const ProfileView = () => {
                 See More
               </Typography>
             </Paper>
+
+            {/* Additional Profile Information */}
+            <Box sx={{ mt: 2 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 500,
+                  color: '#455a64',
+                  mb: 1,
+                }}
+              >
+                Work Details
+              </Typography>
+
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  bgcolor: 'white',
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#78909c', fontWeight: 500 }}>
+                    Current Job
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#455a64' }}>
+                    {profileData?.current_job ? 'Yes' : 'No'}
+                  </Typography>
+                </Box>
+                
+                {profileData?.current_job && (
+                  <>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#78909c', fontWeight: 500 }}>
+                        Current Position
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#455a64' }}>
+                        {profileData?.current_position || 'Not specified'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#78909c', fontWeight: 500 }}>
+                        Hours Per Week
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#455a64' }}>
+                        {profileData?.current_work_hours || 'Not specified'}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#78909c', fontWeight: 500 }}>
+                    Preferred Hours
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#455a64' }}>
+                    {profileData?.hours_per_week || 'Not specified'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#78909c', fontWeight: 500 }}>
+                    Weekend Availability
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#455a64' }}>
+                    {profileData?.available_weekends ? 'Available' : 'Not Available'}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#78909c', fontWeight: 500 }}>
+                    Ready to Work
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#455a64' }}>
+                    {profileData?.ready_to_work ? 'Yes' : 'No'}
+                  </Typography>
+                </Box>
+              </Paper>
+            </Box>
           </Box>
         )}
 

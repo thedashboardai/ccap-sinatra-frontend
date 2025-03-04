@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -8,18 +8,24 @@ import {
   Avatar,
   IconButton,
   Paper,
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   ArrowBack,
   ArrowForward,
   DeleteOutline,
 } from '@mui/icons-material';
+import { useProfile } from '../services/ProfileContext';
 
 const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
-  const [profileData, setProfileData] = useState({
-    bio: 'Lorem ipsum dolor sit amet consectetur. Consectetur suspendisse habitant ornare nulla semper mi a diam proin. Facilisis risus interdum vulputate in. Integer quis facilisis porttitor elementum ac quam nunc.',
+  const { profileData, updateProfileData, saveProfile, loading, error } = useProfile();
+  
+  const [pageData, setPageData] = useState({
+    bio: '',
     profilePicture: null,
-    profilePicturePreview: '/images/profile-placeholder.jpg' // This would be replaced with your actual uploaded image
+    profilePicturePreview: '/images/profile-placeholder.jpg'
   });
 
   const [profilePictureDetails] = useState({
@@ -28,9 +34,24 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
     size: '321 KB'
   });
 
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertSeverity, setAlertSeverity] = useState('success');
+
+  // Update local state when profileData changes
+  useEffect(() => {
+    if (profileData) {
+      setPageData({
+        bio: profileData.bio || 'Lorem ipsum dolor sit amet consectetur. Consectetur suspendisse habitant ornare nulla semper mi a diam proin. Facilisis risus interdum vulputate in. Integer quis facilisis porttitor elementum ac quam nunc.',
+        profilePicture: null,
+        profilePicturePreview: profileData.profile_picture_url || '/images/profile-placeholder.jpg'
+      });
+    }
+  }, [profileData]);
+
   const handleChange = (field) => (event) => {
-    setProfileData({
-      ...profileData,
+    setPageData({
+      ...pageData,
       [field]: event.target.value
     });
   };
@@ -42,8 +63,8 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
       // Create a preview URL
       const previewUrl = URL.createObjectURL(file);
       
-      setProfileData({
-        ...profileData,
+      setPageData({
+        ...pageData,
         profilePicture: file,
         profilePicturePreview: previewUrl
       });
@@ -51,11 +72,34 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
   };
 
   const handleDeletePicture = () => {
-    setProfileData({
-      ...profileData,
+    setPageData({
+      ...pageData,
       profilePicture: null,
       profilePicturePreview: '/images/profile-placeholder.jpg'
     });
+  };
+
+  const handleCloseAlert = () => {
+    setAlertOpen(false);
+  };
+
+  const handleSubmitProfile = async () => {
+    // Update the global profile data with this page's data
+    updateProfileData({
+      bio: pageData.bio,
+      profile_picture_url: pageData.profilePicturePreview !== '/images/profile-placeholder.jpg' ? pageData.profilePicturePreview : null,
+    });
+    
+    try {
+      // Save all profile data to the server
+      await saveProfile();
+      // Call the onSubmit prop to show success dialog
+      onSubmit();
+    } catch (err) {
+      setAlertMessage('Failed to save profile. Please try again.');
+      setAlertSeverity('error');
+      setAlertOpen(true);
+    }
   };
 
   return (
@@ -165,7 +209,7 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
             }}
           >
             <Avatar
-              src={profileData.profilePicturePreview}
+              src={pageData.profilePicturePreview}
               alt="Profile"
               sx={{ 
                 width: 50, 
@@ -206,6 +250,25 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
             style={{ display: 'none' }}
             onChange={handleFileUpload}
           />
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+            <Button
+              variant="outlined"
+              component="label"
+              htmlFor="profile-picture-upload"
+              sx={{
+                mt: 1,
+                mb: 2,
+                color: '#42a5f5',
+                borderColor: '#42a5f5',
+                '&:hover': {
+                  bgcolor: 'rgba(33, 150, 243, 0.04)',
+                  borderColor: '#42a5f5',
+                },
+              }}
+            >
+              Change Picture
+            </Button>
+          </Box>
         </Box>
 
         {/* Bio */}
@@ -217,7 +280,7 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
             fullWidth
             multiline
             rows={5}
-            value={profileData.bio}
+            value={pageData.bio}
             onChange={handleChange('bio')}
             variant="outlined"
             sx={{
@@ -253,8 +316,9 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
         </Button>
         <Button
           variant="contained"
-          onClick={onSubmit}
-          endIcon={<ArrowForward />}
+          onClick={handleSubmitProfile}
+          disabled={loading}
+          endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForward />}
           sx={{
             py: 1.5,
             flex: 1,
@@ -270,6 +334,22 @@ const ProfileSetupPage4 = ({ onBack, onSubmit }) => {
           Submit
         </Button>
       </Box>
+
+      {/* Alert Snackbar */}
+      <Snackbar 
+        open={alertOpen} 
+        autoHideDuration={6000} 
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity={alertSeverity} 
+          sx={{ width: '100%' }}
+        >
+          {alertMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -10,36 +10,67 @@ import {
   RadioGroup,
   FormControlLabel,
   Radio,
-  ButtonGroup,
+  CircularProgress
 } from '@mui/material';
 import {
   KeyboardArrowDown,
   ArrowBack,
   ArrowForward
 } from '@mui/icons-material';
+import { useProfile } from '../services/ProfileContext';
 
 const ProfileSetupPage2 = ({ onBack, onNext }) => {
-  const [profileData, setProfileData] = useState({
-    school: 'XYZ College',
-    graduationYear: '2024',
+  const { profileData, updateProfileData, loading } = useProfile();
+  
+  const [pageData, setPageData] = useState({
+    school: '',
+    graduationYear: '',
     transportation: 'drive',
-    hoursPerWeek: '40',
-    timeAvailable: 'Morning(6 AM - 10 AM)',
+    hoursPerWeek: '',
+    timeAvailable: '',
     availableWeekends: null
   });
 
+  // Update local state when profileData changes
+  useEffect(() => {
+    if (profileData) {
+      setPageData({
+        school: profileData.high_school || '',
+        graduationYear: profileData.graduation_year || '',
+        transportation: profileData.transportation || 'drive',
+        hoursPerWeek: profileData.hours_per_week?.toString() || '40',
+        timeAvailable: profileData.work_preference ? profileData.work_preference[0] : 'Morning(6 AM - 10 AM)',
+        availableWeekends: profileData.available_weekends
+      });
+    }
+  }, [profileData]);
+
   const handleChange = (field) => (event) => {
-    setProfileData({
-      ...profileData,
+    setPageData({
+      ...pageData,
       [field]: event.target.value
     });
   };
 
   const handleWeekendChoice = (choice) => {
-    setProfileData({
-      ...profileData,
+    setPageData({
+      ...pageData,
       availableWeekends: choice
     });
+  };
+
+  const handleNext = () => {
+    // Update global profile data
+    updateProfileData({
+      high_school: pageData.school,
+      graduation_year: pageData.graduationYear,
+      transportation: pageData.transportation,
+      hours_per_week: parseInt(pageData.hoursPerWeek) || 40,
+      work_preference: [pageData.timeAvailable],
+      available_weekends: pageData.availableWeekends
+    });
+    
+    onNext();
   };
 
   return (
@@ -139,7 +170,7 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.school}
+            value={pageData.school}
             onChange={handleChange('school')}
             variant="outlined"
             sx={{
@@ -158,7 +189,7 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.graduationYear}
+            value={pageData.graduationYear}
             onChange={handleChange('graduationYear')}
             variant="outlined"
             sx={{
@@ -178,7 +209,7 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
           <FormControl component="fieldset" fullWidth>
             <RadioGroup
               name="transportation"
-              value={profileData.transportation}
+              value={pageData.transportation}
               onChange={handleChange('transportation')}
             >
               <FormControlLabel
@@ -189,18 +220,18 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
                 label={
                   <Button
                     fullWidth
-                    variant={profileData.transportation === 'drive' ? "contained" : "outlined"}
-                    onClick={() => setProfileData({...profileData, transportation: 'drive'})}
+                    variant={pageData.transportation === 'drive' ? "contained" : "outlined"}
+                    onClick={() => setPageData({...pageData, transportation: 'drive'})}
                     sx={{
                       borderRadius: 2,
                       py: 1.5,
                       mb: 1,
                       justifyContent: 'center',
-                      color: profileData.transportation === 'drive' ? 'white' : '#42a5f5',
+                      color: pageData.transportation === 'drive' ? 'white' : '#42a5f5',
                       borderColor: '#42a5f5',
-                      bgcolor: profileData.transportation === 'drive' ? '#42a5f5' : 'white',
+                      bgcolor: pageData.transportation === 'drive' ? '#42a5f5' : 'white',
                       '&:hover': {
-                        bgcolor: profileData.transportation === 'drive' ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                        bgcolor: pageData.transportation === 'drive' ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                         borderColor: '#42a5f5',
                       },
                     }}
@@ -218,18 +249,18 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
                 label={
                   <Button
                     fullWidth
-                    variant={profileData.transportation === 'dropped' ? "contained" : "outlined"}
-                    onClick={() => setProfileData({...profileData, transportation: 'dropped'})}
+                    variant={pageData.transportation === 'dropped' ? "contained" : "outlined"}
+                    onClick={() => setPageData({...pageData, transportation: 'dropped'})}
                     sx={{
                       borderRadius: 2,
                       py: 1.5,
                       mb: 1,
                       justifyContent: 'center',
-                      color: profileData.transportation === 'dropped' ? 'white' : '#42a5f5',
+                      color: pageData.transportation === 'dropped' ? 'white' : '#42a5f5',
                       borderColor: '#42a5f5',
-                      bgcolor: profileData.transportation === 'dropped' ? '#42a5f5' : 'white',
+                      bgcolor: pageData.transportation === 'dropped' ? '#42a5f5' : 'white',
                       '&:hover': {
-                        bgcolor: profileData.transportation === 'dropped' ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                        bgcolor: pageData.transportation === 'dropped' ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                         borderColor: '#42a5f5',
                       },
                     }}
@@ -247,17 +278,17 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
                 label={
                   <Button
                     fullWidth
-                    variant={profileData.transportation === 'public' ? "contained" : "outlined"}
-                    onClick={() => setProfileData({...profileData, transportation: 'public'})}
+                    variant={pageData.transportation === 'public' ? "contained" : "outlined"}
+                    onClick={() => setPageData({...pageData, transportation: 'public'})}
                     sx={{
                       borderRadius: 2,
                       py: 1.5,
                       justifyContent: 'center',
-                      color: profileData.transportation === 'public' ? 'white' : '#42a5f5',
+                      color: pageData.transportation === 'public' ? 'white' : '#42a5f5',
                       borderColor: '#42a5f5',
-                      bgcolor: profileData.transportation === 'public' ? '#42a5f5' : 'white',
+                      bgcolor: pageData.transportation === 'public' ? '#42a5f5' : 'white',
                       '&:hover': {
-                        bgcolor: profileData.transportation === 'public' ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                        bgcolor: pageData.transportation === 'public' ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                         borderColor: '#42a5f5',
                       },
                     }}
@@ -278,7 +309,7 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.hoursPerWeek}
+            value={pageData.hoursPerWeek}
             onChange={handleChange('hoursPerWeek')}
             variant="outlined"
             InputProps={{
@@ -304,7 +335,7 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
           </Typography>
           <TextField
             fullWidth
-            value={profileData.timeAvailable}
+            value={pageData.timeAvailable}
             onChange={handleChange('timeAvailable')}
             variant="outlined"
             InputProps={{
@@ -331,16 +362,16 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               fullWidth
-              variant={profileData.availableWeekends === true ? "contained" : "outlined"}
+              variant={pageData.availableWeekends === true ? "contained" : "outlined"}
               onClick={() => handleWeekendChoice(true)}
               sx={{
                 borderRadius: 2,
                 py: 1.5,
-                color: profileData.availableWeekends === true ? 'white' : '#42a5f5',
+                color: pageData.availableWeekends === true ? 'white' : '#42a5f5',
                 borderColor: '#42a5f5',
                 '&:hover': {
                   borderColor: '#42a5f5',
-                  bgcolor: profileData.availableWeekends === true ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                  bgcolor: pageData.availableWeekends === true ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                 },
               }}
             >
@@ -348,16 +379,16 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
             </Button>
             <Button
               fullWidth
-              variant={profileData.availableWeekends === false ? "contained" : "outlined"}
+              variant={pageData.availableWeekends === false ? "contained" : "outlined"}
               onClick={() => handleWeekendChoice(false)}
               sx={{
                 borderRadius: 2,
                 py: 1.5,
-                color: profileData.availableWeekends === false ? 'white' : '#42a5f5',
+                color: pageData.availableWeekends === false ? 'white' : '#42a5f5',
                 borderColor: '#42a5f5',
                 '&:hover': {
                   borderColor: '#42a5f5',
-                  bgcolor: profileData.availableWeekends === false ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
+                  bgcolor: pageData.availableWeekends === false ? '#2196f3' : 'rgba(33, 150, 243, 0.04)',
                 },
               }}
             >
@@ -390,8 +421,9 @@ const ProfileSetupPage2 = ({ onBack, onNext }) => {
         </Button>
         <Button
           variant="contained"
-          onClick={onNext}
-          endIcon={<ArrowForward />}
+          onClick={handleNext}
+          endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForward />}
+          disabled={loading}
           sx={{
             py: 1.5,
             flex: 1,
